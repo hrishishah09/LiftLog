@@ -1,5 +1,7 @@
 export type Placement = 'WRIST' | 'WAIST'
 
+export type Unit = 'kg' | 'lbs'
+
 export type ExerciseId = string
 
 export interface Exercise {

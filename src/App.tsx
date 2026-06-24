@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import type { Routine, SessionRecord } from './types'
+import type { Routine, SessionRecord, Unit } from './types'
 import { loadRoutines, loadSessions, saveRoutine, deleteRoutine } from './db'
 import { Header } from './components/Header'
 import { WorkoutManager } from './components/WorkoutManager'
@@ -9,11 +9,10 @@ import { PerformanceHistory } from './components/PerformanceHistory'
 
 export default function App() {
   const [routines, setRoutines] = useState<Routine[]>(() => loadRoutines())
-  const [activeRoutineId, setActiveRoutineId] = useState<string | null>(
-    () => routines[0]?.id ?? null,
-  )
+  const [activeRoutineId, setActiveRoutineId] = useState<string | null>(null)
   const [history] = useState<SessionRecord[]>(() => loadSessions())
   const [modalOpen, setModalOpen] = useState(false)
+  const [unit, setUnit] = useState<Unit>('kg')
 
   const activeRoutine = routines.find((r) => r.id === activeRoutineId) ?? null
 
@@ -22,7 +21,7 @@ export default function App() {
       const next = prev.filter((r) => r.id !== id)
       setActiveRoutineId((curr) => {
         if (curr !== id) return curr
-        return next[0]?.id ?? null
+        return null
       })
       return next
     })
@@ -31,13 +30,20 @@ export default function App() {
 
   const handleCreate = useCallback((routine: Routine) => {
     setRoutines((prev) => [...prev, routine])
-    setActiveRoutineId(routine.id)
     saveRoutine(routine)
+  }, [])
+
+  const handleStartRoutine = useCallback((id: string) => {
+    setActiveRoutineId(id)
   }, [])
 
   return (
     <div className="min-h-screen bg-gray-50/60 text-gray-900 antialiased">
-      <Header onCreateWorkout={() => setModalOpen(true)} />
+      <Header
+        onCreateWorkout={() => setModalOpen(true)}
+        unit={unit}
+        onToggleUnit={() => setUnit((u) => (u === 'kg' ? 'lbs' : 'kg'))}
+      />
 
       <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
@@ -46,12 +52,13 @@ export default function App() {
               routines={routines}
               activeRoutineId={activeRoutineId}
               onSelectRoutine={setActiveRoutineId}
+              onStartRoutine={handleStartRoutine}
               onDeleteRoutine={handleDelete}
             />
           </div>
 
           <div className="flex flex-col gap-8">
-            <LiveTrackingHub routine={activeRoutine} />
+            <LiveTrackingHub routine={activeRoutine} unit={unit} />
             <PerformanceHistory records={history} />
           </div>
         </div>

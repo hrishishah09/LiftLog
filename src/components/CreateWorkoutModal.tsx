@@ -14,7 +14,7 @@ const THEME_CYCLE: RoutineTheme[] = ['indigo', 'violet', 'emerald', 'amber', 'ro
 export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [selected, setSelected] = useState<Record<string, { sets: number; weight: number }>>({})
+  const [selected, setSelected] = useState<Record<string, { sets: number }>>({})
 
   useEffect(() => {
     if (open) {
@@ -41,7 +41,7 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
       if (next[id]) {
         delete next[id]
       } else {
-        next[id] = { sets: 3, weight: 20 }
+        next[id] = { sets: 3 }
       }
       return next
     })
@@ -61,7 +61,7 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
     const exercises: ExerciseConfig[] = Object.entries(selected).map(([exerciseId, cfg]) => ({
       exerciseId,
       sets: cfg.sets,
-      weight: cfg.weight,
+      weight: 0,
     }))
     const theme = THEME_CYCLE[Math.floor(Math.random() * THEME_CYCLE.length)]
     onCreate({

@@ -8,6 +8,7 @@ interface WorkoutManagerProps {
   routines: Routine[]
   activeRoutineId: string | null
   onSelectRoutine: (id: string) => void
+  onStartRoutine: (id: string) => void
   onDeleteRoutine: (id: string) => void
 }
 
@@ -15,9 +16,10 @@ export function WorkoutManager({
   routines,
   activeRoutineId,
   onSelectRoutine,
+  onStartRoutine,
   onDeleteRoutine,
 }: WorkoutManagerProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(activeRoutineId)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const toggle = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id))
@@ -111,13 +113,19 @@ export function WorkoutManager({
                             <span className="w-16 text-right text-xs font-semibold text-gray-500">
                               {ex.sets} sets
                             </span>
-                            <span className="w-16 text-right text-xs font-semibold text-gray-700">
-                              {ex.weight > 0 ? `${ex.weight} kg` : 'Bodyweight'}
-                            </span>
                           </li>
                         )
                       })}
                     </ul>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onStartRoutine(routine.id)
+                      }}
+                      className="mt-4 w-full rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-600 active:scale-[0.98]"
+                    >
+                      Start Workout
+                    </button>
                   </div>
                 )}
               </article>
