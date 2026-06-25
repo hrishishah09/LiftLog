@@ -1,5 +1,5 @@
 import type { Routine, SessionRecord } from './types'
-import { SEED_HISTORY, SEED_ROUTINES } from './seed'
+import { SEED_ROUTINES } from './seed'
 
 /**
  * Local JSON persistence layer.
@@ -10,12 +10,13 @@ import { SEED_HISTORY, SEED_ROUTINES } from './seed'
  *
  * {
  *   "routines": [ { id, name, description, theme, exercises: [...] } ],
- *   "sessions": [ { id, date, workout, theme, totalReps, duration } ]
+ *   "sessions": [ { id, date, workout, theme, totalReps, duration, exercises: [...] } ]
  * }
  *
  * Each routine nests its exercises as a sub-array — a denormalized shape
  * that maps cleanly onto a parent `routines` table + child
- * `routine_exercises` table when you migrate.
+ * `routine_exercises` table when you migrate.  Each session likewise
+ * nests its per-exercise set records.
  */
 
 const STORAGE_KEY = 'liftlog.mockDatabase.json'
@@ -50,7 +51,7 @@ function seedIfEmpty(): DatabaseShape {
   if (existing) return existing
   const fresh: DatabaseShape = {
     routines: SEED_ROUTINES,
-    sessions: SEED_HISTORY,
+    sessions: [],
   }
   write(fresh)
   return fresh
@@ -79,5 +80,11 @@ export function deleteRoutine(id: string): void {
 export function saveSession(record: SessionRecord): void {
   const db = seedIfEmpty()
   db.sessions = [record, ...db.sessions]
+  write(db)
+}
+
+export function deleteSession(id: string): void {
+  const db = seedIfEmpty()
+  db.sessions = db.sessions.filter((s) => s.id !== id)
   write(db)
 }

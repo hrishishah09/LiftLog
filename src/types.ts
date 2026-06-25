@@ -26,6 +26,17 @@ export interface Routine {
 
 export type RoutineTheme = 'indigo' | 'violet' | 'emerald' | 'amber' | 'rose' | 'sky'
 
+export interface SetRecord {
+  setNumber: number
+  weight: number
+  reps: number
+}
+
+export interface ExerciseRecord {
+  exerciseId: ExerciseId
+  sets: SetRecord[]
+}
+
 export interface SessionRecord {
   id: string
   date: string
@@ -33,4 +44,5 @@ export interface SessionRecord {
   theme: RoutineTheme
   totalReps: number
   duration: string
+  exercises: ExerciseRecord[]
 }

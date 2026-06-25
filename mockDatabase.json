@@ -38,11 +38,5 @@
       ]
     }
   ],
-  "sessions": [
-    { "id": "h1", "date": "2026-06-23", "workout": "Push Day", "theme": "indigo", "totalReps": 48, "duration": "42 min" },
-    { "id": "h2", "date": "2026-06-22", "workout": "Pull Day", "theme": "violet", "totalReps": 52, "duration": "38 min" },
-    { "id": "h3", "date": "2026-06-21", "workout": "Leg Day", "theme": "emerald", "totalReps": 60, "duration": "51 min" },
-    { "id": "h4", "date": "2026-06-20", "workout": "Push Day", "theme": "indigo", "totalReps": 44, "duration": "40 min" },
-    { "id": "h5", "date": "2026-06-18", "workout": "Pull Day", "theme": "violet", "totalReps": 50, "duration": "36 min" }
-  ]
+  "sessions": []
 }

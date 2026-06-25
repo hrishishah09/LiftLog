@@ -1,4 +1,4 @@
-import type { Routine, SessionRecord } from './types'
+import type { Routine } from './types'
 
 export const SEED_ROUTINES: Routine[] = [
   {
@@ -38,12 +38,4 @@ export const SEED_ROUTINES: Routine[] = [
       { exerciseId: 'calf_raises', sets: 4, weight: 50 },
     ],
   },
-]
-
-export const SEED_HISTORY: SessionRecord[] = [
-  { id: 'h1', date: '2026-06-23', workout: 'Push Day', theme: 'indigo', totalReps: 48, duration: '42 min' },
-  { id: 'h2', date: '2026-06-22', workout: 'Pull Day', theme: 'violet', totalReps: 52, duration: '38 min' },
-  { id: 'h3', date: '2026-06-21', workout: 'Leg Day', theme: 'emerald', totalReps: 60, duration: '51 min' },
-  { id: 'h4', date: '2026-06-20', workout: 'Push Day', theme: 'indigo', totalReps: 44, duration: '40 min' },
-  { id: 'h5', date: '2026-06-18', workout: 'Pull Day', theme: 'violet', totalReps: 50, duration: '36 min' },
 ]

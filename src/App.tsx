@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Routine, SessionRecord, Unit } from './types'
-import { loadRoutines, loadSessions, saveRoutine, deleteRoutine } from './db'
+import { loadRoutines, loadSessions, saveRoutine, deleteRoutine, saveSession, deleteSession } from './db'
 import { checkConnection } from './api'
 import { Header } from './components/Header'
 import { WorkoutManager } from './components/WorkoutManager'
@@ -11,7 +11,7 @@ import { PerformanceHistory } from './components/PerformanceHistory'
 export default function App() {
   const [routines, setRoutines] = useState<Routine[]>(() => loadRoutines())
   const [activeRoutineId, setActiveRoutineId] = useState<string | null>(null)
-  const [history] = useState<SessionRecord[]>(() => loadSessions())
+  const [history, setHistory] = useState<SessionRecord[]>(() => loadSessions())
   const [modalOpen, setModalOpen] = useState(false)
   const [unit, setUnit] = useState<Unit>('kg')
   const [connected, setConnected] = useState(false)
@@ -63,6 +63,16 @@ export default function App() {
     setActiveRoutineId(null)
   }, [])
 
+  const handleWorkoutComplete = useCallback((session: SessionRecord) => {
+    setHistory((prev) => [session, ...prev])
+    saveSession(session)
+  }, [])
+
+  const handleDeleteSession = useCallback((id: string) => {
+    setHistory((prev) => prev.filter((s) => s.id !== id))
+    deleteSession(id)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gray-50/60 text-gray-900 antialiased">
       <Header
@@ -90,8 +100,9 @@ export default function App() {
               routine={activeRoutine}
               unit={unit}
               onExitRoutine={handleExitRoutine}
+              onWorkoutComplete={handleWorkoutComplete}
             />
-            <PerformanceHistory records={history} />
+            <PerformanceHistory records={history} onDeleteSession={handleDeleteSession} />
           </div>
         </div>
       </main>
