@@ -5,9 +5,10 @@ interface HeaderProps {
   onCreateWorkout: () => void
   unit: Unit
   onToggleUnit: () => void
+  connected: boolean
 }
 
-export function Header({ onCreateWorkout, unit, onToggleUnit }: HeaderProps) {
+export function Header({ onCreateWorkout, unit, onToggleUnit, connected }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-8">
@@ -59,12 +60,31 @@ export function Header({ onCreateWorkout, unit, onToggleUnit }: HeaderProps) {
             Create Custom Workout
           </button>
 
-          <div className="hidden items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-2 sm:inline-flex">
+          {/* Wristband connection status — driven by backend bluetooth status */}
+          <div
+            className={`hidden items-center gap-2 rounded-full border px-3.5 py-2 sm:inline-flex ${
+              connected
+                ? 'border-emerald-100 bg-emerald-50'
+                : 'border-gray-200 bg-gray-50'
+            }`}
+          >
             <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-pulse-dot rounded-full bg-emerald-400" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              {connected && (
+                <span className="absolute inline-flex h-full w-full animate-pulse-dot rounded-full bg-emerald-400" />
+              )}
+              <span
+                className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
+                  connected ? 'bg-emerald-500' : 'bg-gray-400'
+                }`}
+              />
             </span>
-            <span className="text-xs font-semibold text-emerald-700">LiftLog Wristband: Connected</span>
+            <span
+              className={`text-xs font-semibold ${
+                connected ? 'text-emerald-700' : 'text-gray-500'
+              }`}
+            >
+              {connected ? 'LiftLog Wristband: Connected' : 'Wristband: Disconnected'}
+            </span>
           </div>
         </div>
       </div>

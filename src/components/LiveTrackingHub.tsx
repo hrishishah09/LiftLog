@@ -6,11 +6,19 @@ import { startTracking, stopTracking } from '../api'
 interface LiveTrackingHubProps {
   routine: Routine | null
   unit: Unit
+  onExitRoutine: () => void
 }
 
 type Phase = 'idle' | 'tracking' | 'rest'
 
-export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
+interface CompletedSet {
+  exerciseId: string
+  setNumber: number
+  weight: number
+  reps: number
+}
+
+export function LiveTrackingHub({ routine, unit, onExitRoutine }: LiveTrackingHubProps) {
   const queue = routine?.exercises ?? []
 
   const [exerciseIdx, setExerciseIdx] = useState(0)
@@ -19,8 +27,9 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [weightInput, setWeightInput] = useState('')
   const [backendAck, setBackendAck] = useState<string | null>(null)
+  const [completed, setCompleted] = useState<CompletedSet[]>([])
 
-  // When the active routine changes, reset to its first exercise
+  // When the active routine changes, reset everything
   useEffect(() => {
     setExerciseIdx(0)
     setActiveSet(1)
@@ -28,6 +37,7 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
     setPhase('idle')
     setWeightInput('')
     setBackendAck(null)
+    setCompleted([])
   }, [routine?.id])
 
   const currentConfig = queue[exerciseIdx]
@@ -54,6 +64,13 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
     if (phase === 'tracking') {
       await stopTracking()
     }
+
+    const weight = parseFloat(weightInput) || 0
+    setCompleted((prev) => [
+      ...prev,
+      { exerciseId, setNumber: activeSet, weight, reps },
+    ])
+
     if (activeSet < totalSets) {
       setActiveSet((s) => s + 1)
       setPhase('idle')
@@ -78,9 +95,15 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
   const isRoutineComplete =
     !routine || queue.length === 0 || (exerciseIdx >= queue.length - 1 && activeSet > totalSets)
 
+  // Group completed sets by exercise for the summary
+  const completedByExercise = completed.reduce<Record<string, CompletedSet[]>>((acc, s) => {
+    (acc[s.exerciseId] ??= []).push(s)
+    return acc
+  }, {})
+
   return (
     <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-      {/* Hub header: current exercise + placement badge */}
+      {/* Hub header: current exercise + placement badge + exit button */}
       <div className="flex flex-col gap-3 border-b border-gray-100 bg-gradient-to-br from-gray-50/80 to-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-white">
@@ -98,25 +121,35 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
           </div>
         </div>
 
-        {routine && currentConfig && (
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-gray-800">
-              {exerciseName(exerciseId)}
-            </span>
-            <div
-              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-bold ${
-                placement === 'WRIST'
-                  ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
-                  : 'bg-violet-50 text-violet-700 ring-1 ring-violet-200'
-              }`}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {routine && currentConfig && (
+            <>
+              <span className="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-gray-800">
+                {exerciseName(exerciseId)}
+              </span>
+              <div
+                className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-bold ${
+                  placement === 'WRIST'
+                    ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
+                    : 'bg-violet-50 text-violet-700 ring-1 ring-violet-200'
+                }`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${placement === 'WRIST' ? 'bg-indigo-500' : 'bg-violet-500'}`}
+                />
+                {placement === 'WRIST' ? 'Wear on WRIST' : 'Clip to WAIST'}
+              </div>
+            </>
+          )}
+          {routine && (
+            <button
+              onClick={onExitRoutine}
+              className="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-500 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
             >
-              <span
-                className={`h-2 w-2 rounded-full ${placement === 'WRIST' ? 'bg-indigo-500' : 'bg-violet-500'}`}
-              />
-              {placement === 'WRIST' ? 'Wear on WRIST' : 'Clip to WAIST'}
-            </div>
-          </div>
-        )}
+              Exit Workout
+            </button>
+          )}
+        </div>
       </div>
 
       {!routine ? (
@@ -178,7 +211,7 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
             )}
           </div>
 
-          {/* RIGHT: set checklist + controls */}
+          {/* RIGHT: set checklist + completed summary + controls */}
           <div className="flex flex-col px-6 py-7">
             <div className="mb-4 flex items-baseline justify-between">
               <h3 className="text-sm font-bold text-gray-900">Set Progress</h3>
@@ -192,6 +225,9 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
                 const setNum = i + 1
                 const isComplete = setNum < activeSet
                 const isActive = setNum === activeSet
+                const completedSet = completed.find(
+                  (s) => s.exerciseId === exerciseId && s.setNumber === setNum,
+                )
                 return (
                   <li
                     key={i}
@@ -223,11 +259,23 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
                     </span>
                     <span
                       className={`text-sm font-semibold ${
-                        isActive ? 'text-indigo-700' : isComplete ? 'text-gray-400 line-through' : 'text-gray-600'
+                        isActive ? 'text-indigo-700' : isComplete ? 'text-gray-400' : 'text-gray-600'
                       }`}
                     >
                       Set {setNum}
                     </span>
+                    {isComplete && completedSet && (
+                      <span className="ml-auto flex items-center gap-2 text-xs font-semibold text-gray-500">
+                        <span className="rounded-md bg-gray-100 px-2 py-0.5">
+                          {completedSet.weight > 0
+                            ? `${completedSet.weight} ${unit}`
+                            : 'Bodyweight'}
+                        </span>
+                        <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-indigo-600">
+                          {completedSet.reps} reps
+                        </span>
+                      </span>
+                    )}
                     {isActive && phase === 'tracking' && (
                       <span className="ml-auto rounded-md bg-indigo-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                         Tracking
@@ -238,15 +286,42 @@ export function LiveTrackingHub({ routine, unit }: LiveTrackingHubProps) {
                         Active
                       </span>
                     )}
-                    {isComplete && (
-                      <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-gray-300">
-                        Done
-                      </span>
-                    )}
                   </li>
                 )
               })}
             </ul>
+
+            {/* Completed sets from previous exercises in this routine */}
+            {Object.keys(completedByExercise).length > 1 && (
+              <div className="mt-5 border-t border-gray-100 pt-4">
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  Completed Exercises
+                </h4>
+                <div className="flex flex-col gap-3">
+                  {Object.entries(completedByExercise)
+                    .filter(([id]) => id !== exerciseId)
+                    .map(([id, sets]) => (
+                      <div key={id} className="rounded-xl border border-gray-100 bg-gray-50/40 px-4 py-3">
+                        <p className="mb-1.5 text-xs font-bold text-gray-700">
+                          {exerciseName(id)}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {sets.map((s, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-500 ring-1 ring-gray-100"
+                            >
+                              <span className="text-gray-400">S{s.setNumber}</span>
+                              {s.weight > 0 ? `${s.weight} ${unit}` : 'BW'}
+                              <span className="text-indigo-500">{s.reps}r</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
 
             {/* Weight input + Start Set */}
             {phase === 'idle' && (

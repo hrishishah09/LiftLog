@@ -57,3 +57,20 @@ export function startTracking(
 export function stopTracking(): Promise<{ ok: boolean } | null> {
   return postJSON<{ ok: boolean }>('/stop-set', {})
 }
+
+export interface SessionStatus {
+  active: boolean
+  tracking: boolean
+  bluetooth_connected?: boolean
+}
+
+export async function checkConnection(): Promise<SessionStatus | null> {
+  try {
+    const res = await fetch(`${API_BASE}/session`, { method: 'GET' })
+    if (!res.ok) throw new Error(`status ${res.status}`)
+    return (await res.json()) as SessionStatus
+  } catch (err) {
+    console.warn('[LiftLog] backend unreachable (session):', err)
+    return null
+  }
+}

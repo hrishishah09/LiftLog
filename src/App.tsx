@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Routine, SessionRecord, Unit } from './types'
 import { loadRoutines, loadSessions, saveRoutine, deleteRoutine } from './db'
+import { checkConnection } from './api'
 import { Header } from './components/Header'
 import { WorkoutManager } from './components/WorkoutManager'
 import { CreateWorkoutModal } from './components/CreateWorkoutModal'
@@ -13,8 +14,29 @@ export default function App() {
   const [history] = useState<SessionRecord[]>(() => loadSessions())
   const [modalOpen, setModalOpen] = useState(false)
   const [unit, setUnit] = useState<Unit>('kg')
+  const [connected, setConnected] = useState(false)
 
   const activeRoutine = routines.find((r) => r.id === activeRoutineId) ?? null
+  const isWorkoutActive = activeRoutineId !== null
+
+  // Poll the Python backend for bluetooth connection status.
+  useEffect(() => {
+    let cancelled = false
+    const poll = async () => {
+      const status = await checkConnection()
+      if (!cancelled && status) {
+        setConnected(status.bluetooth_connected ?? false)
+      } else if (!cancelled) {
+        setConnected(false)
+      }
+    }
+    poll()
+    const interval = setInterval(poll, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
 
   const handleDelete = useCallback((id: string) => {
     setRoutines((prev) => {
@@ -37,12 +59,17 @@ export default function App() {
     setActiveRoutineId(id)
   }, [])
 
+  const handleExitRoutine = useCallback(() => {
+    setActiveRoutineId(null)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gray-50/60 text-gray-900 antialiased">
       <Header
         onCreateWorkout={() => setModalOpen(true)}
         unit={unit}
         onToggleUnit={() => setUnit((u) => (u === 'kg' ? 'lbs' : 'kg'))}
+        connected={connected}
       />
 
       <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8">
@@ -51,6 +78,7 @@ export default function App() {
             <WorkoutManager
               routines={routines}
               activeRoutineId={activeRoutineId}
+              locked={isWorkoutActive}
               onSelectRoutine={setActiveRoutineId}
               onStartRoutine={handleStartRoutine}
               onDeleteRoutine={handleDelete}
@@ -58,17 +86,15 @@ export default function App() {
           </div>
 
           <div className="flex flex-col gap-8">
-            <LiveTrackingHub routine={activeRoutine} unit={unit} />
+            <LiveTrackingHub
+              routine={activeRoutine}
+              unit={unit}
+              onExitRoutine={handleExitRoutine}
+            />
             <PerformanceHistory records={history} />
           </div>
         </div>
       </main>
-
-      <footer className="mx-auto max-w-7xl px-6 pb-10 sm:px-8">
-        <p className="text-center text-xs text-gray-300">
-          LiftLog · ESP32 + MPU6050 + BLE · Python rep-counting bridge
-        </p>
-      </footer>
 
       <CreateWorkoutModal
         open={modalOpen}

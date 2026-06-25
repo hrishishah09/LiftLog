@@ -164,10 +164,15 @@ def stop_set() -> dict:
 @app.get("/api/session")
 def current_session() -> dict:
     if _active_session is None:
-        return {"active": False, "tracking": _tracking}
+        return {
+            "active": False,
+            "tracking": _tracking,
+            "bluetooth_connected": False,
+        }
     return {
         "active": True,
         "tracking": _tracking,
+        "bluetooth_connected": False,
         "exercise": _active_session.exercise_name,
         "placement": _active_session.device_location,
         "set_number": _current_set,

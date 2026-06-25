@@ -7,6 +7,7 @@ import { ChevronIcon, TrashIcon } from './icons'
 interface WorkoutManagerProps {
   routines: Routine[]
   activeRoutineId: string | null
+  locked: boolean
   onSelectRoutine: (id: string) => void
   onStartRoutine: (id: string) => void
   onDeleteRoutine: (id: string) => void
@@ -15,6 +16,7 @@ interface WorkoutManagerProps {
 export function WorkoutManager({
   routines,
   activeRoutineId,
+  locked,
   onSelectRoutine,
   onStartRoutine,
   onDeleteRoutine,
@@ -43,18 +45,23 @@ export function WorkoutManager({
             const theme = ROUTINE_THEMES[routine.theme]
             const isActive = routine.id === activeRoutineId
             const isExpanded = routine.id === expandedId
+            const isDisabled = locked && !isActive
             return (
               <article
                 key={routine.id}
                 className={`group overflow-hidden rounded-2xl border bg-white transition-all duration-200 ${
                   isActive
                     ? 'border-indigo-200 shadow-lg shadow-indigo-500/5'
-                    : 'border-gray-100 shadow-sm hover:border-gray-200 hover:shadow-md'
+                    : isDisabled
+                      ? 'border-gray-100 opacity-50 shadow-sm'
+                      : 'border-gray-100 shadow-sm hover:border-gray-200 hover:shadow-md'
                 }`}
               >
                 <div
-                  onClick={() => toggle(routine.id)}
-                  className="flex cursor-pointer items-center gap-3 px-5 py-4"
+                  onClick={() => !isDisabled && toggle(routine.id)}
+                  className={`flex items-center gap-3 px-5 py-4 ${
+                    isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'
+                  }`}
                 >
                   <span className={`h-9 w-1.5 rounded-full ${theme.dot}`} />
                   <div className="min-w-0 flex-1">
@@ -73,16 +80,18 @@ export function WorkoutManager({
                   <span className="hidden text-xs font-medium text-gray-400 sm:block">
                     {routine.exercises.length} exercises
                   </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDeleteRoutine(routine.id)
-                    }}
-                    className="rounded-lg p-2 text-gray-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
-                    aria-label={`Delete ${routine.name}`}
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
+                  {!locked && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteRoutine(routine.id)
+                      }}
+                      className="rounded-lg p-2 text-gray-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
+                      aria-label={`Delete ${routine.name}`}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  )}
                   <ChevronIcon
                     className={`h-4 w-4 text-gray-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                   />
@@ -124,7 +133,7 @@ export function WorkoutManager({
                       }}
                       className="mt-4 w-full rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-600 active:scale-[0.98]"
                     >
-                      Start Workout
+                      {locked && isActive ? 'Workout In Progress' : 'Start Workout'}
                     </button>
                   </div>
                 )}
