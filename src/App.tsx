@@ -101,7 +101,7 @@ export default function App() {
               onExitRoutine={handleExitRoutine}
               onWorkoutComplete={handleWorkoutComplete}
             />
-            <PerformanceHistory records={history} onDeleteSession={handleDeleteSession} />
+            <PerformanceHistory records={history} unit={unit} onDeleteSession={handleDeleteSession} />
           </div>
         </div>
       </main>

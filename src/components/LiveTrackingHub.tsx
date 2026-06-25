@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Routine, SessionRecord, Unit, ExerciseRecord, SetRecord } from '../types'
 import { exerciseName, placementFor } from '../exercises'
 import { startTracking, stopTracking } from '../api'
+import { convertWeight, formatWeight } from '../units'
 
 interface LiveTrackingHubProps {
   routine: Routine | null
@@ -47,10 +48,11 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
   const placement = exerciseId ? placementFor(exerciseId) : 'WRIST'
 
   const handleStartSet = async () => {
-    const weight = parseFloat(weightInput) || 0
+    const inputWeight = parseFloat(weightInput) || 0
+    const weightKg = convertWeight(inputWeight, unit, 'kg')
     setPhase('tracking')
     setReps(0)
-    const res = await startTracking(exerciseName(exerciseId), activeSet, weight, unit)
+    const res = await startTracking(exerciseName(exerciseId), activeSet, weightKg, unit)
     if (res) {
       setBackendAck(`${res.exercise} · ${res.state} · ${res.unit}`)
     }
@@ -66,8 +68,9 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
       await stopTracking()
     }
 
-    const weight = parseFloat(weightInput) || 0
-    const newCompleted: CompletedSet = { exerciseId, setNumber: activeSet, weight, reps }
+    const inputWeight = parseFloat(weightInput) || 0
+    const weightKg = convertWeight(inputWeight, unit, 'kg')
+    const newCompleted: CompletedSet = { exerciseId, setNumber: activeSet, weight: weightKg, reps }
     const allCompleted = [...completed, newCompleted]
     setCompleted(allCompleted)
 
@@ -271,9 +274,7 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
                     {isComplete && completedSet && (
                       <span className="ml-auto flex items-center gap-2 text-xs font-semibold text-gray-500">
                         <span className="rounded-md bg-gray-100 px-2 py-0.5">
-                          {completedSet.weight > 0
-                            ? `${completedSet.weight} ${unit}`
-                            : 'Bodyweight'}
+                          {formatWeight(completedSet.weight, unit)}
                         </span>
                         <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-indigo-600">
                           {completedSet.reps} reps
@@ -367,7 +368,7 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
                               className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-500 ring-1 ring-gray-100"
                             >
                               <span className="text-gray-400">S{s.setNumber}</span>
-                              {s.weight > 0 ? `${s.weight} ${unit}` : 'BW'}
+                              {s.weight > 0 ? formatWeight(s.weight, unit) : 'BW'}
                               <span className="text-indigo-500">{s.reps}r</span>
                             </span>
                           ))}
@@ -452,7 +453,7 @@ function WorkoutSummary({
                       {s.setNumber}
                     </span>
                     <span className="flex-1 font-medium text-gray-600">
-                      {s.weight > 0 ? `${s.weight} ${unit}` : 'Bodyweight'}
+                      {formatWeight(s.weight, unit)}
                     </span>
                     <span className="font-bold text-indigo-600">{s.reps} reps</span>
                   </div>

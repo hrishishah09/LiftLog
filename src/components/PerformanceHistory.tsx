@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import type { SessionRecord } from '../types'
+import type { SessionRecord, Unit } from '../types'
 import { exerciseName } from '../exercises'
+import { formatWeight } from '../units'
 import { ROUTINE_THEMES } from '../themes'
 import { ChevronIcon, TrashIcon } from './icons'
 
 interface PerformanceHistoryProps {
   records: SessionRecord[]
+  unit: Unit
   onDeleteSession: (id: string) => void
 }
 
-export function PerformanceHistory({ records, onDeleteSession }: PerformanceHistoryProps) {
+export function PerformanceHistory({ records, unit, onDeleteSession }: PerformanceHistoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const toggle = (id: string) => {
@@ -98,7 +100,7 @@ export function PerformanceHistory({ records, onDeleteSession }: PerformanceHist
                                   {s.setNumber}
                                 </span>
                                 <span className="flex-1 font-medium text-gray-600">
-                                  {s.weight > 0 ? `${s.weight} kg` : 'Bodyweight'}
+                                  {formatWeight(s.weight, unit)}
                                 </span>
                                 <span className="font-bold text-indigo-600">{s.reps} reps</span>
                               </div>
