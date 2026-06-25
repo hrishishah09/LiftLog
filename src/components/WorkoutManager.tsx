@@ -8,7 +8,6 @@ interface WorkoutManagerProps {
   routines: Routine[]
   activeRoutineId: string | null
   locked: boolean
-  onSelectRoutine: (id: string) => void
   onStartRoutine: (id: string) => void
   onDeleteRoutine: (id: string) => void
 }
@@ -17,7 +16,6 @@ export function WorkoutManager({
   routines,
   activeRoutineId,
   locked,
-  onSelectRoutine,
   onStartRoutine,
   onDeleteRoutine,
 }: WorkoutManagerProps) {
@@ -25,7 +23,6 @@ export function WorkoutManager({
 
   const toggle = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id))
-    onSelectRoutine(id)
   }
 
   return (

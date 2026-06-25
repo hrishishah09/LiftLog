@@ -89,7 +89,6 @@ export default function App() {
               routines={routines}
               activeRoutineId={activeRoutineId}
               locked={isWorkoutActive}
-              onSelectRoutine={setActiveRoutineId}
               onStartRoutine={handleStartRoutine}
               onDeleteRoutine={handleDelete}
             />
