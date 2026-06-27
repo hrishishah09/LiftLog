@@ -21,6 +21,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'rear_delt', name: 'Rear Delt', placement: 'WRIST' },
   { id: 'shoulder_press', name: 'Shoulder Press', placement: 'WRIST' },
   { id: 'lat_pulldowns', name: 'Lat Pulldowns', placement: 'WRIST' },
+  { id: 'rows', name: 'Rows', placement: 'WRIST' },
   { id: 'squat', name: 'Squat', placement: 'WAIST' },
   { id: 'dips', name: 'Dips', placement: 'WAIST' },
   { id: 'pullups', name: 'Pullups', placement: 'WAIST' },

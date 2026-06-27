@@ -8,9 +8,9 @@ const LB_PER_KG = 2.20462
  * Weights are stored in kg internally; this converts for display.
  */
 export function convertWeight(weight: number, from: Unit, to: Unit): number {
-  if (from === to) return weight
-  if (from === 'kg' && to === 'lbs') return Math.round(weight * LB_PER_KG * 10) / 10
-  return Math.round(weight * KG_PER_LB * 10) / 10
+  if (from === to) return Math.round(weight)
+  if (from === 'kg' && to === 'lbs') return Math.round(weight * LB_PER_KG)
+  return Math.round(weight * KG_PER_LB)
 }
 
 /**

@@ -11,16 +11,21 @@ interface CreateWorkoutModalProps {
 
 const THEME_CYCLE: RoutineTheme[] = ['indigo', 'violet', 'emerald', 'amber', 'rose', 'sky']
 
+interface SelectedExercise {
+  exerciseId: string
+  sets: number
+}
+
 export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [selected, setSelected] = useState<Record<string, { sets: number }>>({})
+  const [selected, setSelected] = useState<SelectedExercise[]>([])
 
   useEffect(() => {
     if (open) {
       setName('')
       setDescription('')
-      setSelected({})
+      setSelected([])
     }
   }, [open])
 
@@ -35,32 +40,43 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
 
   if (!open) return null
 
+  const isSelected = (id: string) => selected.some((s) => s.exerciseId === id)
+
   const toggleExercise = (id: string) => {
     setSelected((prev) => {
-      const next = { ...prev }
-      if (next[id]) {
-        delete next[id]
-      } else {
-        next[id] = { sets: 3 }
+      const existing = prev.find((s) => s.exerciseId === id)
+      if (existing) {
+        return prev.filter((s) => s.exerciseId !== id)
       }
-      return next
+      return [...prev, { exerciseId: id, sets: 3 }]
     })
   }
 
   const setSets = (id: string, delta: number) => {
-    setSelected((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], sets: Math.max(1, Math.min(10, prev[id].sets + delta)) },
-    }))
+    setSelected((prev) =>
+      prev.map((s) =>
+        s.exerciseId === id ? { ...s, sets: Math.max(1, Math.min(10, s.sets + delta)) } : s,
+      ),
+    )
   }
 
-  const canCreate = name.trim().length > 0 && Object.keys(selected).length > 0
+  const moveExercise = (index: number, direction: -1 | 1) => {
+    setSelected((prev) => {
+      const next = [...prev]
+      const target = index + direction
+      if (target < 0 || target >= next.length) return prev
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+
+  const canCreate = name.trim().length > 0 && selected.length > 0
 
   const handleCreate = () => {
     if (!canCreate) return
-    const exercises: ExerciseConfig[] = Object.entries(selected).map(([exerciseId, cfg]) => ({
-      exerciseId,
-      sets: cfg.sets,
+    const exercises: ExerciseConfig[] = selected.map((s) => ({
+      exerciseId: s.exerciseId,
+      sets: s.sets,
       weight: 0,
     }))
     const theme = THEME_CYCLE[Math.floor(Math.random() * THEME_CYCLE.length)]
@@ -122,11 +138,12 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
 
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
-                Exercises <span className="font-normal text-gray-300">({Object.keys(selected).length} selected)</span>
+                Exercises <span className="font-normal text-gray-300">({selected.length} selected)</span>
               </label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {EXERCISES.map((ex) => {
-                  const isSel = !!selected[ex.id]
+                  const isSel = isSelected(ex.id)
+                  const selEntry = selected.find((s) => s.exerciseId === ex.id)
                   return (
                     <div
                       key={ex.id}
@@ -156,7 +173,7 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
                           {ex.placement}
                         </span>
                       </div>
-                      {isSel && (
+                      {isSel && selEntry && (
                         <div
                           className="mt-2.5 flex items-center justify-between pl-7"
                           onClick={(e) => e.stopPropagation()}
@@ -170,7 +187,7 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
                               <span className="text-sm leading-none">−</span>
                             </button>
                             <span className="w-5 text-center text-sm font-bold text-gray-800">
-                              {selected[ex.id].sets}
+                              {selEntry.sets}
                             </span>
                             <button
                               onClick={() => setSets(ex.id, 1)}
@@ -186,6 +203,54 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
                 })}
               </div>
             </div>
+
+            {selected.length > 0 && (
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Exercise Order
+                </label>
+                <div className="flex flex-col gap-1.5">
+                  {selected.map((s, i) => {
+                    const ex = EXERCISES.find((e) => e.id === s.exerciseId)
+                    if (!ex) return null
+                    return (
+                      <div
+                        key={s.exerciseId}
+                        className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-3 py-2.5"
+                      >
+                        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-50 text-xs font-bold text-indigo-600">
+                          {i + 1}
+                        </span>
+                        <span className="flex-1 text-sm font-semibold text-gray-800">{ex.name}</span>
+                        <span className="text-xs font-medium text-gray-400">{s.sets} sets</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => moveExercise(i, -1)}
+                            disabled={i === 0}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                            aria-label="Move up"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="m18 15-6-6-6 6" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => moveExercise(i, 1)}
+                            disabled={i === selected.length - 1}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                            aria-label="Move down"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="m6 9 6 6 6-6" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

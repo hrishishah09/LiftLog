@@ -73,6 +73,7 @@ EXERCISE_DATABASE = {
     # Horizontal Group
     "chest_press": HorizontalLinearTracker,
     "pushups": HorizontalLinearTracker,
+    "rows": HorizontalLinearTracker,
     
     # Hinge Group
     "bicep_curls": RotationalHingeTracker,
