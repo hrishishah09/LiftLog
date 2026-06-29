@@ -11,7 +11,8 @@ interface LiveTrackingHubProps {
   onWorkoutComplete: (session: SessionRecord) => void
 }
 
-type Phase = 'idle' | 'tracking' | 'rest' | 'complete'
+type Phase = 'select' | 'idle' | 'tracking' | 'rest' | 'complete'
+type TrackingMode = 'device' | 'manual'
 
 interface CompletedSet {
   exerciseId: string
@@ -26,7 +27,9 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
   const [exerciseIdx, setExerciseIdx] = useState(0)
   const [activeSet, setActiveSet] = useState(1)
   const [reps, setReps] = useState(0)
-  const [phase, setPhase] = useState<Phase>('idle')
+  const [manualReps, setManualReps] = useState('')
+  const [phase, setPhase] = useState<Phase>('select')
+  const [trackingMode, setTrackingMode] = useState<TrackingMode>('device')
   const [weightInput, setWeightInput] = useState('')
   const [backendAck, setBackendAck] = useState<string | null>(null)
   const [completed, setCompleted] = useState<CompletedSet[]>([])
@@ -36,7 +39,9 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
     setExerciseIdx(0)
     setActiveSet(1)
     setReps(0)
-    setPhase('idle')
+    setManualReps('')
+    setPhase('select')
+    setTrackingMode('device')
     setWeightInput('')
     setBackendAck(null)
     setCompleted([])
@@ -52,25 +57,33 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
     const weightKg = convertWeight(inputWeight, unit, 'kg')
     setPhase('tracking')
     setReps(0)
-    const res = await startTracking(exerciseName(exerciseId), activeSet, weightKg, unit)
-    if (res) {
-      setBackendAck(`${res.exercise} · ${res.state} · ${res.unit}`)
+    setManualReps('')
+    if (trackingMode === 'device') {
+      const res = await startTracking(exerciseName(exerciseId), activeSet, weightKg, unit)
+      if (res) {
+        setBackendAck(`${res.exercise} · ${res.state} · ${res.unit}`)
+      }
+    } else {
+      setBackendAck(null)
     }
   }
 
   const handleStopSet = async () => {
-    await stopTracking()
+    if (trackingMode === 'device') {
+      await stopTracking()
+    }
     setPhase('rest')
   }
 
   const handleCompleteSet = async () => {
-    if (phase === 'tracking') {
+    if (phase === 'tracking' && trackingMode === 'device') {
       await stopTracking()
     }
 
     const inputWeight = parseFloat(weightInput) || 0
     const weightKg = convertWeight(inputWeight, unit, 'kg')
-    const newCompleted: CompletedSet = { exerciseId, setNumber: activeSet, weight: weightKg, reps }
+    const finalReps = trackingMode === 'manual' ? (parseInt(manualReps) || 0) : reps
+    const newCompleted: CompletedSet = { exerciseId, setNumber: activeSet, weight: weightKg, reps: finalReps }
     const allCompleted = [...completed, newCompleted]
     setCompleted(allCompleted)
 
@@ -78,6 +91,7 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
       setActiveSet((s) => s + 1)
       setPhase('idle')
       setWeightInput('')
+      setManualReps('')
       return
     }
     // Final set of this exercise — advance to next exercise in the routine queue
@@ -86,6 +100,7 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
       setExerciseIdx(nextIdx)
       setActiveSet(1)
       setReps(0)
+      setManualReps('')
       setPhase('idle')
       setWeightInput('')
     } else {
@@ -181,13 +196,13 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
           {/* LEFT: rep counter + tracking status */}
           <div className="flex flex-col items-center justify-center border-b border-gray-100 px-6 py-10 lg:border-b-0 lg:border-r">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Reps This Set
+              {trackingMode === 'manual' ? 'Reps Entered' : 'Reps This Set'}
             </span>
             <div
               key={`${exerciseId}-${activeSet}`}
               className="animate-scale-in font-mono text-[120px] font-extrabold leading-none tracking-tighter text-gray-900"
             >
-              {String(reps).padStart(2, '0')}
+              {String(trackingMode === 'manual' ? (parseInt(manualReps) || 0) : reps).padStart(2, '0')}
             </div>
             <div className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 ${
               phase === 'tracking'
@@ -296,12 +311,58 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
               })}
             </ul>
 
+            {/* Tracking mode selection */}
+            {phase === 'select' && (
+              <div className="mt-5 flex flex-col gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Choose tracking method
+                </p>
+                <button
+                  onClick={() => { setTrackingMode('device'); setPhase('idle') }}
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition-all hover:border-indigo-300 hover:bg-indigo-50/30 active:scale-[0.99]"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="6" y="3" width="12" height="18" rx="2" />
+                      <path d="M12 7v4" />
+                    </svg>
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-900">Track with device</p>
+                    <p className="text-xs text-gray-400">Use your wearable to count reps automatically</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { setTrackingMode('manual'); setPhase('idle') }}
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition-all hover:border-emerald-300 hover:bg-emerald-50/30 active:scale-[0.99]"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-900">Enter reps manually</p>
+                    <p className="text-xs text-gray-400">Type in your reps after each set</p>
+                  </div>
+                </button>
+              </div>
+            )}
+
             {/* Weight input + Start Set */}
             {phase === 'idle' && (
               <div className="mt-5 flex flex-col gap-2.5">
-                <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Weight ({unit})
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Weight ({unit})
+                  </label>
+                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    trackingMode === 'device' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
+                  }`}>
+                    {trackingMode === 'device' ? 'Device' : 'Manual'}
+                  </span>
+                </div>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -322,15 +383,37 @@ export function LiveTrackingHub({ routine, unit, onExitRoutine, onWorkoutComplet
             {/* Stop + Complete Set when tracking */}
             {phase === 'tracking' && (
               <div className="mt-5 flex flex-col gap-2.5">
-                <button
-                  onClick={handleStopSet}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-600 transition-all hover:bg-gray-50 active:scale-[0.99]"
-                >
-                  Stop Tracking
-                </button>
+                {trackingMode === 'manual' && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      Reps completed
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={manualReps}
+                      onChange={(e) => setManualReps(e.target.value)}
+                      placeholder="0"
+                      autoFocus
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 outline-none transition-all placeholder:text-gray-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50"
+                    />
+                  </div>
+                )}
+                {trackingMode === 'device' && (
+                  <button
+                    onClick={handleStopSet}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-600 transition-all hover:bg-gray-50 active:scale-[0.99]"
+                  >
+                    Stop Tracking
+                  </button>
+                )}
                 <button
                   onClick={handleCompleteSet}
-                  className="w-full rounded-xl bg-violet-500 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition-all hover:bg-violet-600 hover:shadow-violet-500/40 active:scale-[0.99]"
+                  className={`w-full rounded-xl px-5 py-3.5 text-sm font-bold text-white shadow-lg transition-all active:scale-[0.99] ${
+                    trackingMode === 'manual'
+                      ? 'bg-emerald-500 shadow-emerald-500/25 hover:bg-emerald-600 hover:shadow-emerald-500/40'
+                      : 'bg-violet-500 shadow-violet-500/25 hover:bg-violet-600 hover:shadow-violet-500/40'
+                  }`}
                 >
                   Complete Set {activeSet}
                 </button>
