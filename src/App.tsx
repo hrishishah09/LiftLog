@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Routine, SessionRecord, Unit } from './types'
-import { loadRoutines, loadSessions, saveRoutine, deleteRoutine, saveSession, deleteSession } from './db'
+import { loadRoutines, loadSessions, saveRoutine, updateRoutine, deleteRoutine, saveSession, deleteSession } from './db'
 import { checkConnection } from './api'
 import { Header } from './components/Header'
 import { WorkoutManager } from './components/WorkoutManager'
 import { CreateWorkoutModal } from './components/CreateWorkoutModal'
 import { LiveTrackingHub } from './components/LiveTrackingHub'
 import { PerformanceHistory } from './components/PerformanceHistory'
+import { ProgressChartModal } from './components/ProgressChartModal'
 
 export default function App() {
   const [routines, setRoutines] = useState<Routine[]>(() => loadRoutines())
   const [activeRoutineId, setActiveRoutineId] = useState<string | null>(null)
   const [history, setHistory] = useState<SessionRecord[]>(() => loadSessions())
   const [modalOpen, setModalOpen] = useState(false)
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null)
+  const [progressRoutine, setProgressRoutine] = useState<Routine | null>(null)
   const [unit, setUnit] = useState<Unit>('kg')
   const [connected, setConnected] = useState(false)
 
@@ -55,6 +58,21 @@ export default function App() {
     saveRoutine(routine)
   }, [])
 
+  const handleUpdateRoutine = useCallback((routine: Routine) => {
+    setRoutines((prev) => prev.map((r) => (r.id === routine.id ? routine : r)))
+    updateRoutine(routine)
+  }, [])
+
+  const handleEditRoutine = useCallback((routine: Routine) => {
+    setEditingRoutine(routine)
+    setModalOpen(true)
+  }, [])
+
+  const handleOpenCreate = useCallback(() => {
+    setEditingRoutine(null)
+    setModalOpen(true)
+  }, [])
+
   const handleStartRoutine = useCallback((id: string) => {
     setActiveRoutineId(id)
   }, [])
@@ -76,7 +94,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50/60 text-gray-900 antialiased">
       <Header
-        onCreateWorkout={() => setModalOpen(true)}
+        onCreateWorkout={handleOpenCreate}
         unit={unit}
         onToggleUnit={() => setUnit((u) => (u === 'kg' ? 'lbs' : 'kg'))}
         connected={connected}
@@ -91,6 +109,8 @@ export default function App() {
               locked={isWorkoutActive}
               onStartRoutine={handleStartRoutine}
               onDeleteRoutine={handleDelete}
+              onEditRoutine={handleEditRoutine}
+              onViewProgress={setProgressRoutine}
             />
           </div>
 
@@ -108,9 +128,19 @@ export default function App() {
 
       <CreateWorkoutModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setEditingRoutine(null) }}
         onCreate={handleCreate}
+        editingRoutine={editingRoutine}
+        onUpdate={handleUpdateRoutine}
       />
+      {progressRoutine && (
+        <ProgressChartModal
+          routine={progressRoutine}
+          sessions={history}
+          unit={unit}
+          onClose={() => setProgressRoutine(null)}
+        />
+      )}
     </div>
   )
 }

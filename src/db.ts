@@ -71,6 +71,12 @@ export function saveRoutine(routine: Routine): void {
   write(db)
 }
 
+export function updateRoutine(routine: Routine): void {
+  const db = seedIfEmpty()
+  db.routines = db.routines.map((r) => (r.id === routine.id ? routine : r))
+  write(db)
+}
+
 export function deleteRoutine(id: string): void {
   const db = seedIfEmpty()
   db.routines = db.routines.filter((r) => r.id !== id)

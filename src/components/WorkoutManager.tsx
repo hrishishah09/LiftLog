@@ -10,6 +10,8 @@ interface WorkoutManagerProps {
   locked: boolean
   onStartRoutine: (id: string) => void
   onDeleteRoutine: (id: string) => void
+  onEditRoutine: (routine: Routine) => void
+  onViewProgress: (routine: Routine) => void
 }
 
 export function WorkoutManager({
@@ -18,6 +20,8 @@ export function WorkoutManager({
   locked,
   onStartRoutine,
   onDeleteRoutine,
+  onEditRoutine,
+  onViewProgress,
 }: WorkoutManagerProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -78,16 +82,44 @@ export function WorkoutManager({
                     {routine.exercises.length} exercises
                   </span>
                   {!locked && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onDeleteRoutine(routine.id)
-                      }}
-                      className="rounded-lg p-2 text-gray-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
-                      aria-label={`Delete ${routine.name}`}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onViewProgress(routine)
+                        }}
+                        className="rounded-lg p-2 text-gray-300 transition-colors hover:bg-indigo-50 hover:text-indigo-500"
+                        aria-label={`View progress for ${routine.name}`}
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 3v18h18" />
+                          <path d="m19 9-5 5-4-4-3 3" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onEditRoutine(routine)
+                        }}
+                        className="rounded-lg p-2 text-gray-300 transition-colors hover:bg-sky-50 hover:text-sky-500"
+                        aria-label={`Edit ${routine.name}`}
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteRoutine(routine.id)
+                        }}
+                        className="rounded-lg p-2 text-gray-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
+                        aria-label={`Delete ${routine.name}`}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </>
                   )}
                   <ChevronIcon
                     className={`h-4 w-4 text-gray-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`}

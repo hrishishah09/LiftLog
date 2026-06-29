@@ -7,6 +7,8 @@ interface CreateWorkoutModalProps {
   open: boolean
   onClose: () => void
   onCreate: (routine: Routine) => void
+  editingRoutine?: Routine | null
+  onUpdate?: (routine: Routine) => void
 }
 
 const THEME_CYCLE: RoutineTheme[] = ['indigo', 'violet', 'emerald', 'amber', 'rose', 'sky']
@@ -16,18 +18,25 @@ interface SelectedExercise {
   sets: number
 }
 
-export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutModalProps) {
+export function CreateWorkoutModal({ open, onClose, onCreate, editingRoutine, onUpdate }: CreateWorkoutModalProps) {
+  const isEditing = !!editingRoutine
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [selected, setSelected] = useState<SelectedExercise[]>([])
 
   useEffect(() => {
     if (open) {
-      setName('')
-      setDescription('')
-      setSelected([])
+      if (editingRoutine) {
+        setName(editingRoutine.name)
+        setDescription(editingRoutine.description ?? '')
+        setSelected(editingRoutine.exercises.map((e) => ({ exerciseId: e.exerciseId, sets: e.sets })))
+      } else {
+        setName('')
+        setDescription('')
+        setSelected([])
+      }
     }
-  }, [open])
+  }, [open, editingRoutine])
 
   useEffect(() => {
     if (!open) return
@@ -79,14 +88,23 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
       sets: s.sets,
       weight: 0,
     }))
-    const theme = THEME_CYCLE[Math.floor(Math.random() * THEME_CYCLE.length)]
-    onCreate({
-      id: `r-${Date.now()}`,
-      name: name.trim(),
-      description: description.trim() || undefined,
-      theme,
-      exercises,
-    })
+    if (isEditing && editingRoutine && onUpdate) {
+      onUpdate({
+        ...editingRoutine,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        exercises,
+      })
+    } else {
+      const theme = THEME_CYCLE[Math.floor(Math.random() * THEME_CYCLE.length)]
+      onCreate({
+        id: `r-${Date.now()}`,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        theme,
+        exercises,
+      })
+    }
     onClose()
   }
 
@@ -99,7 +117,9 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
       <div className="relative z-10 flex max-h-[88vh] w-full max-w-2xl animate-scale-in flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Create Custom Workout</h2>
+            <h2 className="text-lg font-bold text-gray-900">
+              {isEditing ? 'Edit Routine' : 'Create Custom Workout'}
+            </h2>
             <p className="text-xs text-gray-400">Name your routine and pick exercises.</p>
           </div>
           <button
@@ -266,7 +286,7 @@ export function CreateWorkoutModal({ open, onClose, onCreate }: CreateWorkoutMod
             disabled={!canCreate}
             className="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
           >
-            Create
+            {isEditing ? 'Save Changes' : 'Create'}
           </button>
         </div>
       </div>
